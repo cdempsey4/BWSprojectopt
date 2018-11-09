@@ -1,0 +1,63 @@
+clear
+fun = @objectfun;
+%displacement bounds set in inches
+ub = [12,4,12,12,12,300];%,12,6,12,300,12,6,12,300,12,6,12,300];
+lb = [1,0.25,0,-12,-12,25];%,0,-24,-24,25,0,-24,-24,25,0,-24,-24,25];
+x0 = [randi([1 12]),randi([1 4]),randi([0 12]),randi([-12 12]),randi([-12 12]),randi([25 300])];%,4,-4,1,50,6,-2,2,100,6,-2,2,100];    %initial guess to satisfy constraints 
+%ub = [12,0.25,2.186,-1.1419,-4,305.0241,12,12,12,300,12,12,12,300,12,12,12,300];
+%lb = [12,0.25,2.186,-1.1419,-4,305.0241,0,-12,-12,25,0,-12,-12,25,0,-12,-12,25];
+%x0 = [12,0.25,2.186,-1.1419,-4,305.0241,6,-2,2,100,6,-2,2,100,6,-2,2,100];
+%ub = [12,4,3.1305,4.2177,1.0192,49.3958,1.8953,-1.5398,-1.4577,216.655,0.4118,5.4381,-17.3736,299.3288];
+%lb = [12,0.25,3.1305,4.2177,1.0192,49.3958,1.8953,-1.5398,-1.4577,216.655,0.4118,5.4381,-17.3736,299.3288];
+%x0 = [12,1.5,3.1305,4.2177,1.0192,49.3958,1.8953,-1.5398,-1.4577,216.655,0.4118,5.4381,-17.3736,299.3288];
+A = [];                    %No linear constraints
+b = [];
+Aeq = [];
+beq = [];
+N = 0;
+n = 0;
+Fvec = zeros(1,N+1);
+f1 = figure;
+ErrorSum = 300;
+%for i = 0.5:0.5:2.5             %iterates through x(5) at each x(4) value and calls fmincon
+   %for j = 6
+while ErrorSum > 100 %&& length(x0) < 30
+    %hold on
+    ubNew = [12,12,12,300];
+    lbNew = [0,-12,-12,25];
+    x0New = [randi([0 12]),randi([-12 12]),randi([-12 12]),randi([25 300])];
+    
+    ub = [ub , ubNew];
+    lb = [lb , lbNew];
+    x0 = [x0 , x0New];
+    options = optimoptions('fmincon','MaxFunEvals',4000);
+    [x,fval,exitflag,output] = fmincon(fun,x0,A,b,Aeq,beq,lb,ub,@cablecon); 
+    %how to suppress final message?
+    %hold off
+    Fvec(N+1) = fval; %store the value of the output "fval" in a vector Fvec
+    ErrorSum = fval;
+    N = N+1;
+end
+   %end
+   %n = n +1;
+%end
+
+%Fmat = reshape(Fvec, [n,N/n]); %reshape
+%figure(f1)
+%b = bar3(Fmat);
+%colorbar
+%title('Sum of Error')
+%xlabel('Gear Ratio')
+%ylabel('Spool radius')
+%for k = 1:length(b)
+ %  zdata = get(b(k), 'ZData');
+  % b(k).CData = zdata;
+   %b(k).FaceColor = 'interp';
+%end
+
+%h = heatmap(Fmat)
+   %h.Title = 'Residual Value';
+   %h.XLabel = 'Spool Radius (in)';
+   %h.YLabel = 'Gear Ratio';
+%sol = find(Fvec<10); %finds values of fval stored in Fvec that are close to zero
+Min = min(Fvec);
