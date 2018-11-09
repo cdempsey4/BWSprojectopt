@@ -1,0 +1,83 @@
+function [output] = objectfun(x) %objective fn must return scalar value
+W = 300; %Max patient weight = 300lb (about 136kg)
+L = 143.31; %Width of workspace in inches
+h = 78.74; %Height of payload measured from top of support in inches (y-e)?
+temp = []; %empty variable with array concatenation
+signError = []; %empty arrary to contain true error values (positive & negative)
+latE = [];  %empty array to contain lateral error terms
+verE = [];  %empty array to contain vertical error terms
+Qtension = [];
+Ttension = [];
+xtrun = x(3:length(x));
+numSprings = length(xtrun)/4;
+Springmat = reshape(xtrun,4,numSprings)';
+l = Springmat(:,1);
+y = Springmat(:,2);
+d = Springmat(:,3);
+k = Springmat(:,4);
+
+F0 = sqrt((l.^2)+(y.^2)+(d.^2)-(2*l.*(d.*sin(0)-y.*cos(0)))); % Free length of spring (in)
+
+%f1 = figure; %(-x(2)+x(1)*cos(theta)) %(x(3)-x(1)*sin(theta))
+%f2 = figure;
+for theta = 0:pi/180:pi/2 %increment angular displacement
+    L1 = h + (x(1)*x(2)*theta); %set cable length variable;
+    %(h is used as the free length of the cable), F is the new spring length
+    F = sqrt((l.^2)+(y.^2)+(d.^2)-(2*l.*(d.*sin(theta)-y.*cos(theta))));
+    %phi is the angle between the spring & counterweight arm (alpha+beta)
+    phi = atan2((-y+l*cos(theta)),(d-l*sin(theta)));    %.* or *?? Both work.
+    
+    %psi is the angle on the cable measured CCW from the vertical upright
+    psi = acos(h/L1);
+    
+    b = F - F0; %amount elongation of spring
+    
+    %phi is the the angle between spring force and arm (alpha + beta)
+    Q = (W*sqrt((L1^2)-(h^2))*sqrt((L^2)+(L1^2)-(2*L*sqrt((L1^2-(h^2)))))) ...
+        /(L*h); %Cable tension from counter-weight model
+    Tv = ((k.*b.*(l.*sin(phi))))/x(1); %Vector containing contribution of each spring to cable tension
+            %previously Tv divided by x(1) which is the gear ratio, now set
+            %at 12
+    T = sum(Tv); %Cable tension from spring model
+    
+    Qtension = [Qtension;Q];
+    Qnorm = Qtension/max(Qtension);
+    Ttension = [Ttension;T];
+    Tnorm = Ttension/max(Ttension);
+    %Ttension(size(Ttension,1));
+    magError = sqrt((abs(Q-T)).^2); %Residual = error between cam model and spring model
+    trueError = Q-T;
+    lateralError = (trueError)*(sin(psi));
+    verticalError = (trueError)*(cos(psi));
+    %sumRes = sum(Res);
+    %temp = [temp;sumRes]; 
+    %temp contains the value of the residual/error magnitude @ each theta value
+    temp = [temp;magError];
+    latE = [latE;lateralError];
+    verE = [verE;verticalError];
+    
+    signError = [signError;trueError];
+    
+    
+    
+end
+output = sum(temp);
+%min(temp)
+%figure(f1)
+%hold on 
+%plot(Qnorm)
+%q = Ttension
+%plot(Tnorm)
+%plot(temp)
+%plot(signError)
+%plot(latE)
+plot(verE)
+%xlabel('Theta');
+%ylabel('Normalized tension T');
+%hold off
+%figure(f2)
+%plot(temp)
+%fprintf('The sum of residuals is %d \n',output)
+%how do we visualize the opimization of the parameters contained in x for
+%each value of theta? Plot output instead of temp?
+%output skewed?
