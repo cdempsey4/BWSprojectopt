@@ -1,0 +1,107 @@
+function [output] = checkError(~)
+W = 300; %Max patient weight = 300lb (about 136kg)
+L = 143.31; %Width of workspace in inches
+h = 78.74; %Height of payload measured from top of support in inches (y-e)?
+temp = []; %empty variable with array concatenation
+latE = [];  %empty array to contain lateral error terms
+verE = [];  %empty array to contain vertical error terms
+Camtension = [];
+Stension = [];
+signError = [];
+%6 spring solution error ~= 248
+%S = [12.0000,0.2500,4.0870,-3.4257,-11.9998,150.6285,6.0860,-8.3152,-23.9984,37.3965,0.0000,-8.2476,-23.9996,88.4391,0.0002,-23.9303,-23.9988,91.9745,2.7792...
+%    ,-0.7700,-8.5897,96.9368,3.5107,0.5786,1.3991,92.4122];
+
+%3 spring solution error ~= 175
+S = [12.0000,0.2500,6.5558,-3.4256,-12.0000,101.6747,0.0282,1.3788,-10.8963,...
+    214.4151,9.2970,2.8558,2.4674,25.0000];
+%error sum ~=47
+%1.0037    0.2510    0.1417    6.0274   11.3678   35.7569    1.4986    0.1551   11.8642  175.8028
+
+  %Columns 11 through 14
+
+    %0.8170   -0.3144   -0.7806  233.8698
+
+Strun = S(3:length(S));
+numSprings = length(Strun)/4;
+springmat = reshape(Strun,4,numSprings)';
+Len = springmat(:,1);
+Y = springmat(:,2);
+D = springmat(:,3);
+K = springmat(:,4);
+
+F0 = sqrt((Len.^2)+(Y.^2)+(D.^2)-(2*Len.*(D.*sin(0)-Y.*cos(0)))); % Free length of spring (in)
+
+%f1 = figure; %(-x(2)+x(1)*cos(theta)) %(x(3)-x(1)*sin(theta))
+%f2 = figure;
+for theta = 0:pi/180:pi/2 %increment angular displacement
+    L1 = h + (S(1)*S(2)*theta); %set cable length variable 
+    %(h is used as the free length of the cable), F is the new spring length
+    F = sqrt((Len.^2)+(Y.^2)+(D.^2)-(2*Len.*(D.*sin(theta)-Y.*cos(theta))));
+    
+    phi = atan2((-Y+Len*cos(theta)),(D-Len*sin(theta)));    %.* or *?? Both work.
+    
+    psi = acos(h/L1);
+    
+    b = F - F0; %amount elongation of spring
+    
+    %phi is the the angle between spring force and arm (alpha + beta)
+    CamT = (W*sqrt((L1^2)-(h^2))*sqrt((L^2)+(L1^2)-(2*L*sqrt((L1^2-(h^2)))))) ...
+        /(L*h); %Cable tension from counter-weight model
+    tensv = ((K.*b.*(Len.*sin(phi))))/S(1); %Vector containing contribution of each spring to cable tension
+    
+    Tens = sum(tensv); %Cable tension from spring model
+    
+    Camtension = [Camtension;CamT];
+    Qnorm = Camtension/max(Camtension);
+    Stension = [Stension;Tens];
+    Tnorm = Stension/max(Stension);
+    %Ttension(size(Ttension,1));
+    magError = sqrt((abs(CamT-Tens)).^2); %Residual = error between cam model and spring model
+    trueError = CamT-Tens;
+    lateralError = (trueError)*(sin(psi));
+    verticalError = (trueError)*(cos(psi));
+    %sumRes = sum(Res);
+    %temp = [temp;sumRes]; %temp contains the value of the residual @ each theta value
+    temp = [temp;magError];
+    latE = [latE;lateralError];
+    verE = [verE;verticalError];
+    
+    signError = [signError;trueError];
+    
+end
+%output = sum(temp);
+%min(temp)
+figure(1)
+hold on 
+plot(Qnorm)
+plot(Tnorm)
+%plot(temp)
+xlabel('Theta');
+ylabel('Normalized tension');
+legend({'Qtension','Ttension'},'Location','southeast')
+hold off
+
+figure(2)
+plot(temp)
+Theta = 0:pi/180:pi/2;
+[psor,lsor] = findpeaks(temp,Theta,'SortStr','descend');
+findpeaks(temp,Theta)
+text(lsor+.02,psor,num2str((1:numel(psor))'))
+xlabel('Theta');
+ylabel('Residual');
+output = findpeaks(temp,Theta);
+
+figure(3)
+hold on
+plot(latE)
+plot(verE)
+xlabel('Theta');
+ylabel('Decomposed Error');
+legend({'lateralError','verticalError'},'Location','southeast')
+hold off
+
+figure(4)
+plot(signError-verE)
+xlabel('Theta')
+ylabel('error difference')
