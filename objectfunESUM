@@ -62,11 +62,10 @@ for theta = 0:pi/180:pi/2 %increment angular displacement
     
 end
 output = sum(temp);
+
 %min(temp)
-%figure(f1)
-%hold on 
+
 %plot(Qnorm)
-%q = Ttension
 %plot(Tnorm)
 %plot(temp)
 %plot(signError)
@@ -74,10 +73,4 @@ output = sum(temp);
 plot(verE)
 %xlabel('Theta');
 %ylabel('Normalized tension T');
-%hold off
-%figure(f2)
-%plot(temp)
-%fprintf('The sum of residuals is %d \n',output)
-%how do we visualize the opimization of the parameters contained in x for
-%each value of theta? Plot output instead of temp?
-%output skewed?
+
